@@ -8,8 +8,8 @@ We test whether image clarity predicts the time needed to review one-minute clip
 
 ## Team
 
-- Abhimanyu Kushwaha â€” @abhikushhh
-- Tariq Shinwari â€” @Tariqshinwar
+- Abhimanyu Kushwaha - @abhikushhh
+- Tariq Shinwari - @Tariqshinwar
 - David - @marscandothis555-cmyk
 
 ## Main result
@@ -20,19 +20,19 @@ On five held-out clips:
 - Clarity-model MAE: **4.93 seconds**
 - Reduction in absolute prediction error: about **62%**
 
-Under the Part 3 base business scenario ($30/hour, with underestimation weighted 1.5Ã— more than overestimation), the clarity model reduced decision loss from about **$0.688 to $0.271** across the five held-out clips.
+Under the Part 3 base business scenario ($30/hour, with underestimation weighted 1.5x more than overestimation), the clarity model reduced decision loss from about **$0.688 to $0.271** across the five held-out clips.
 
 The recommended use is **clip-level staffing and scheduling for similar footage**, not a claim that the model improves total quotes for every possible batch.
 
 ## Repository map
 
-- `PROPOSAL.md` â€” original project proposal
-- `analysis.ipynb` â€” data checks, split, baseline, model, uncertainty, held-out evaluation, and business decision analysis
-- `decisions.md` â€” chronological decision history
-- `presentation.qmd` / `presentation.html` â€” final title slide + Action / Reason / Risk / Value presentation
-- `fig/` â€” saved figures, including the layer diagram
-- `data/README.md` â€” data provenance, release files, hashes, and download instructions
-- `protocol/` â€” review/counting procedure used for data collection
+- `PROPOSAL.md` - original project proposal
+- `analysis.ipynb` - data checks, split, baseline, model, uncertainty, held-out evaluation, and business decision analysis
+- `decisions.md` - chronological decision history
+- `presentation.qmd` / `presentation.html` - final title slide + Action / Reason / Risk / Value presentation
+- `fig/` - saved figures, including the layer diagram
+- `data/README.md` - data provenance, release files, hashes, and download instructions
+- `protocol/` - review/counting procedure used for data collection
 
 ## AI disclosure
 
