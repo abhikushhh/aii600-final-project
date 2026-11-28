@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AII-600 Part 1 — Review timer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --text:#e7e9ee; --muted:#9aa3b2; --accent:#4f8cff; --warn:#ffb020; --ok:#2fbf71; --bad:#ff5c5c; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  header { position:sticky; top:0; z-index:5; background:var(--panel); border-bottom:1px solid var(--line); padding:10px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0 12px 0 0; }
+  select, input[type=text], input[type=number], input[type=date], textarea { background:#0c0e12; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
+  button { background:#232835; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:7px 12px; font:inherit; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.warn { background:var(--warn); border-color:var(--warn); color:#111; }
+  button.ok { background:var(--ok); border-color:var(--ok); color:#06200f; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  main { padding:16px; max-width:1500px; margin:0 auto; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+  .row { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .muted { color:var(--muted); }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#232835; border:1px solid var(--line); font-size:12px; }
+  .pill.done { background:#123b25; border-color:#1f6b43; }
+  .clock { font:600 28px/1 ui-monospace, SFMono-Regular, Menlo, monospace; min-width:120px; }
+  .clock.paused { color:var(--warn); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; }
+  .grid.preview { grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); }
+  .frame { background:#0c0e12; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .frame img { width:100%; display:block; cursor:zoom-in; background:#000; }
+  .frame .lbl { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; gap:8px; }
+  .frame input { width:70px; font-size:16px; text-align:center; }
+  .frame.missing { opacity:.4; }
+  label.radio { margin-right:14px; cursor:pointer; }
+  #lightbox { position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; align-items:center; justify-content:center; z-index:20; }
+  #lightbox img { max-width:96vw; max-height:94vh; }
+  #pauseOverlay { position:fixed; inset:0; background:rgba(15,17,21,.97); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:15; gap:14px; }
+  #pauseOverlay .clock { font-size:44px; }
+  table { border-collapse:collapse; width:100%; font-size:12px; }
+  td, th { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; }
+  .hidden { display:none !important; }
+  .note { font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AII-600 Part 1 — Review timer</h1>
+  <select id="clipSel" aria-label="Clip"></select>
+  <span id="clipMeta" class="muted"></span>
+  <span style="flex:1"></span>
+  <label class="muted">Reviewer <input id="reviewer" type="text" value="Abhi Kush" size="12"></label>
+  <button id="exportBtn" class="primary">Export clip-log CSV</button>
+  <button id="resetAllBtn" title="Erase all saved reviews in this browser">Reset all</button>
+</header>
+<main>
+  <div class="panel note muted">
+    Protocol: <b>1)</b> Preview the 12 frames without counting and choose clarity. <b>2)</b> Press <b>Start timer</b>. Count each frame under <code>counting-rule.md</code>, enter counts and notes. <b>3)</b> Press <b>Finish</b>. Use <b>Pause (interruption)</b> when attention leaves the task; paused time is logged as interruption seconds, not review time. If you lose your place, use <b>Restart (lost place)</b>. Progress is saved in this browser (localStorage) — export the CSV when done.
+  </div>
+
+  <section id="stageClarity" class="panel">
+    <div class="row" style="justify-content:space-between">
+      <h3 style="margin:0">Step 1 — Rate clarity (not timed)</h3>
+      <span id="statusPill" class="pill"></span>
+    </div>
+    <p class="muted note">Look at the typical frame difficulty. Do not enumerate cars yet.</p>
+    <div class="row">
+      <span>
+        <label class="radio"><input type="radio" name="clarity" value="clear"> clear</label>
+        <label class="radio"><input type="radio" name="clarity" value="moderately unclear"> moderately unclear</label>
+        <label class="radio"><input type="radio" name="clarity" value="very unclear"> very unclear</label>
+      </span>
+      <input id="clarityReason" type="text" placeholder="Short clarity reason (optional)" size="50">
+      <button id="startBtn" class="primary" disabled>Start timer</button>
+    </div>
+    <details class="note muted" style="margin-top:8px"><summary>Clarity definitions</summary>
+      <p><b>clear</b>: parked passenger cars separate from background at a glance; distinct edges; usable light; second looks rare.</p>
+      <p><b>moderately unclear</b>: needs extra attention (shadow/glare, moderate occlusion, small/distant cars, mild blur, packed cars) but most objects classifiable without guessing.</p>
+      <p><b>very unclear</b>: a substantial share of candidates need guesswork or fail the rule (severe dark, glare, heavy occlusion, extreme distance, poor focus).</p>
+    </details>
+    <div id="previewGrid" class="grid preview" style="margin-top:12px"></div>
+  </section>
+
+  <section id="stageCount" class="panel hidden">
+    <div class="row">
+      <h3 style="margin:0">Step 2 — Count + enter (timed)</h3>
+      <span id="clock" class="clock">0:00.0</span>
+      <span class="muted">Interruptions: <b id="intClock">0</b> s</span>
+      <span style="flex:1"></span>
+      <button id="pauseBtn" class="warn">Pause (interruption)</button>
+      <button id="restartBtn" title="Discard the time for this clip and restart counting; clarity is kept">Restart (lost place)</button>
+      <button id="finishBtn" class="ok" disabled>Finish</button>
+    </div>
+    <p class="muted note">Clarity: <b id="clarityShown"></b>. Click a frame to enlarge. Median: <b id="medianShown">—</b></p>
+    <div id="countGrid" class="grid"></div>
+    <div style="margin-top:12px"><textarea id="notes" rows="2" style="width:100%" placeholder="Notes (close calls, skipped timestamps, mixed clarity)"></textarea></div>
+  </section>
+
+  <section id="stageDone" class="panel hidden">
+    <h3 style="margin-top:0">Saved</h3>
+    <div id="doneSummary"></div>
+    <div class="row" style="margin-top:10px">
+      <button id="nextBtn" class="primary">Next clip</button>
+      <button id="redoBtn" title="Discard this clip's saved review and do it again">Redo this clip</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3 style="margin-top:0">Progress</h3>
+    <table id="progressTbl"></table>
+  </section>
+</main>
+
+<div id="pauseOverlay">
+  <div class="muted">Interruption — review timer paused</div>
+  <div id="pauseClock" class="clock paused">0.0 s</div>
+  <button id="resumeBtn" class="primary">Resume counting</button>
+</div>
+<div id="lightbox"><img alt=""></div>
+
+<script>
+const CLIPS = [{"clip": "C01", "session": "S01", "file": "IMG_3093.MOV", "recorded": "2026-11-16T17:38:53-05:00", "sim": 86}, {"clip": "C02", "session": "S01", "file": "IMG_3094.MOV", "recorded": "2026-11-16T17:40:04-05:00", "sim": 111}, {"clip": "C03", "session": "S02", "file": "IMG_3095.MOV", "recorded": "2026-11-16T17:49:37-05:00", "sim": 98}, {"clip": "C04", "session": "S02", "file": "IMG_3096.MOV", "recorded": "2026-11-16T17:51:04-05:00", "sim": 61}, {"clip": "C05", "session": "S02", "file": "IMG_1373.MOV", "recorded": "2026-11-16T17:51:13-05:00", "sim": 75}, {"clip": "C06", "session": "S02", "file": "IMG_3097.MOV", "recorded": "2026-11-16T17:52:34-05:00", "sim": 96}, {"clip": "C07", "session": "S02", "file": "IMG_3098.MOV", "recorded": "2026-11-16T17:57:51-05:00", "sim": 110}, {"clip": "C08", "session": "S02", "file": "IMG_3105.MOV", "recorded": "2026-11-16T17:59:15-05:00", "sim": 63}, {"clip": "C09", "session": "S02", "file": "IMG_3106.MOV", "recorded": "2026-11-16T18:00:29-05:00", "sim": 75}, {"clip": "C10", "session": "S02", "file": "IMG_1377.MOV", "recorded": "2026-11-16T18:00:58-05:00", "sim": 98}, {"clip": "C11", "session": "S02", "file": "IMG_3099.MOV", "recorded": "2026-11-16T18:00:58-05:00", "sim": 108}, {"clip": "C12", "session": "S02", "file": "IMG_1378.MOV", "recorded": "2026-11-16T18:02:47-05:00", "sim": 106}, {"clip": "C13", "session": "S02", "file": "IMG_3100.MOV", "recorded": "2026-11-16T18:02:47-05:00", "sim": 79}, {"clip": "C14", "session": "S02", "file": "IMG_1379.MOV", "recorded": "2026-11-16T18:04:11-05:00", "sim": 111}, {"clip": "C15", "session": "S02", "file": "IMG_3101.MOV", "recorded": "2026-11-16T18:04:11-05:00", "sim": 82}, {"clip": "C16", "session": "S02", "file": "IMG_1380.MOV", "recorded": "2026-11-16T18:06:46-05:00", "sim": 87}, {"clip": "C17", "session": "S02", "file": "IMG_3102.MOV", "recorded": "2026-11-16T18:06:46-05:00", "sim": 80}, {"clip": "C18", "session": "S02", "file": "IMG_3103.MOV", "recorded": "2026-11-16T18:08:23-05:00", "sim": 119}, {"clip": "C19", "session": "S02", "file": "IMG_1381.MOV", "recorded": "2026-11-16T18:08:24-05:00", "sim": 95}, {"clip": "C20", "session": "S02", "file": "IMG_3104.MOV", "recorded": "2026-11-16T18:10:26-05:00", "sim": 70}];
+const TIMES = [0,5,10,15,20,25,30,35,40,45,50,55];
+const KEY = 'aii600-part1-review-v1';
+const $ = (id) => document.getElementById(id);
+let store = JSON.parse(localStorage.getItem(KEY) || '{}');
+const save = () => localStorage.setItem(KEY, JSON.stringify(store));
+const pad = (t) => String(t).padStart(2,'0');
+const framePath = (c,t) => `frames/${c}/${c}_t${pad(t)}.jpg`;
+
+let cur = null;        // clip id
+let run = null;        // {start, accumMs, paused, pauseStart, intMs, restarts}
+let tick = null;
+
+function median(v) { const s=[...v].sort((a,b)=>a-b); const m=(s[Math.floor((s.length-1)/2)]+s[Math.ceil((s.length-1)/2)])/2; return Number.isInteger(m)?m:m; }
+function fmt(ms) { const s=ms/1000; return `${Math.floor(s/60)}:${(s%60).toFixed(1).padStart(4,'0')}`; }
+function elapsed() { if(!run) return 0; return run.accumMs + (run.paused||!run.start ? 0 : performance.now()-run.start); }
+
+function buildSelect() {
+  const sel=$('clipSel'); sel.innerHTML='';
+  CLIPS.forEach(c => { const o=document.createElement('option'); o.value=c.clip; o.textContent=`${c.clip}${store[c.clip]?.done?' ✓':''}`; sel.appendChild(o); });
+  sel.value=cur;
+}
+
+function frameEl(c,t,withInput) {
+  const d=document.createElement('div'); d.className='frame';
+  const img=new Image(); img.src=framePath(c,t); img.alt=`${c} ${t}s`; img.loading='lazy';
+  img.onerror=()=>{ d.classList.add('missing'); img.alt='missing'; };
+  img.onclick=()=>{ const lb=$('lightbox'); lb.querySelector('img').src=img.src; lb.style.display='flex'; };
+  d.appendChild(img);
+  const l=document.createElement('div'); l.className='lbl'; l.innerHTML=`<span>${pad(t)} s</span>`;
+  if(withInput){ const i=document.createElement('input'); i.type='number'; i.min='0'; i.step='1'; i.inputMode='numeric'; i.dataset.t=t; i.addEventListener('input',onCountInput); i.addEventListener('keydown',e=>{ if(e.key==='Enter'){ const all=[...document.querySelectorAll('#countGrid input')]; const n=all[all.indexOf(i)+1]; (n||$('notes')).focus(); }}); l.appendChild(i); }
+  d.appendChild(l); return d;
+}
+
+function loadClip(id) {
+  if(run){ if(!confirm('A timed review is in progress. Discard it and switch clips?')) { $('clipSel').value=cur; return; } stopRun(); }
+  cur=id; const meta=CLIPS.find(c=>c.clip===id); const s=store[id];
+  $('clipMeta').textContent=`Session ${meta.session||'—'} · ${meta.file} · ${meta.recorded}`;
+  document.querySelectorAll('input[name=clarity]').forEach(r=>r.checked=(s?.clarity===r.value));
+  $('clarityReason').value=s?.clarityReason||'';
+  $('startBtn').disabled=!s?.clarity;
+  const pg=$('previewGrid'); pg.innerHTML=''; TIMES.forEach(t=>pg.appendChild(frameEl(id,t,false)));
+  $('stageCount').classList.add('hidden');
+  if(s?.done){ showDone(); } else { $('stageDone').classList.add('hidden'); $('stageClarity').classList.remove('hidden'); }
+  $('statusPill').textContent = s?.done ? 'reviewed' : 'not reviewed'; $('statusPill').className='pill'+(s?.done?' done':'');
+  buildSelect(); renderProgress();
+}
+
+function setClarity() {
+  const v=document.querySelector('input[name=clarity]:checked')?.value; if(!v) return;
+  store[cur]={...(store[cur]||{}), clarity:v, clarityReason:$('clarityReason').value}; save();
+  $('startBtn').disabled=false;
+}
+
+function startRun(isRestart) {
+  const s=store[cur]; if(!s?.clarity){ alert('Rate clarity first.'); return; }
+  const prevInt = isRestart && run ? run.intMs : 0;
+  const restarts = isRestart && run ? run.restarts+1 : 0;
+  run={start:performance.now(), accumMs:0, paused:false, pauseStart:0, intMs:prevInt, restarts};
+  $('clarityShown').textContent=s.clarity;
+  const g=$('countGrid'); g.innerHTML=''; TIMES.forEach(t=>g.appendChild(frameEl(cur,t,true)));
+  if(!isRestart) $('notes').value='';
+  if(isRestart && !/restart after lost place/.test($('notes').value)) $('notes').value=($('notes').value+' restart after lost place').trim();
+  $('medianShown').textContent='—'; $('finishBtn').disabled=true;
+  $('stageClarity').classList.add('hidden'); $('stageDone').classList.add('hidden'); $('stageCount').classList.remove('hidden');
+  clearInterval(tick); tick=setInterval(renderClock,100); renderClock();
+  setTimeout(()=>g.querySelector('input')?.focus(),50);
+}
+
+function stopRun(){ clearInterval(tick); run=null; $('pauseOverlay').style.display='none'; }
+
+function renderClock() {
+  if(!run) return;
+  $('clock').textContent=fmt(elapsed());
+  const live = run.paused ? performance.now()-run.pauseStart : 0;
+  $('intClock').textContent=((run.intMs+live)/1000).toFixed(1);
+  $('pauseClock').textContent=(live/1000).toFixed(1)+' s';
+}
+
+function pause() {
+  if(!run||run.paused) return;
+  run.accumMs+=performance.now()-run.start; run.paused=true; run.pauseStart=performance.now();
+  $('pauseOverlay').style.display='flex'; $('clock').classList.add('paused');
+}
+function resume() {
+  if(!run||!run.paused) return;
+  run.intMs+=performance.now()-run.pauseStart; run.paused=false; run.start=performance.now();
+  $('pauseOverlay').style.display='none'; $('clock').classList.remove('paused');
+}
+
+function restart() {
+  if(!run) return;
+  if(!run.paused) pause();
+  if(!confirm('Lost place? This discards the time so far for this clip (the pause is logged as interruption) and restarts counting. Clarity is kept.')) return;
+  run.intMs+=performance.now()-run.pauseStart; run.paused=false;
+  $('pauseOverlay').style.display='none'; $('clock').classList.remove('paused');
+  startRun(true);
+}
+
+function counts() { return [...document.querySelectorAll('#countGrid input')].map(i=>i.value===''?null:Number(i.value)); }
+function onCountInput() {
+  const v=counts(); const ok=v.every(x=>x!==null && Number.isInteger(x) && x>=0);
+  $('finishBtn').disabled=!ok; $('medianShown').textContent= ok ? median(v) : '—';
+}
+
+function finish() {
+  if(!run) return; if(run.paused) resume();
+  const v=counts(); if(!v.every(x=>x!==null)) return;
+  const ms=elapsed();
+  store[cur]={...store[cur], done:true, counts:v, median:median(v), reviewSec:Math.round(ms/1000), reviewMs:Math.round(ms),
+    intSec:Math.round(run.intMs/1000), notes:$('notes').value.trim(), restarts:run.restarts,
+    date:new Date().toLocaleDateString('en-CA'), reviewer:$('reviewer').value.trim()||'Abhi Kush'};
+  save(); stopRun(); $('clock').classList.remove('paused'); showDone(); buildSelect(); renderProgress();
+}
+
+function showDone() {
+  const s=store[cur];
+  $('stageClarity').classList.add('hidden'); $('stageCount').classList.add('hidden'); $('stageDone').classList.remove('hidden');
+  $('doneSummary').innerHTML=`<b>${cur}</b> · clarity <b>${s.clarity}</b> · counts ${s.counts.join(', ')} · median <b>${s.median}</b> · review <b>${s.reviewSec} s</b> · interruptions ${s.intSec} s${s.notes?` · notes: ${escapeHtml(s.notes)}`:''}`;
+  $('statusPill').textContent='reviewed'; $('statusPill').className='pill done';
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function renderProgress() {
+  const t=$('progressTbl');
+  t.innerHTML='<tr><th>Clip</th><th>Session</th><th>Clarity</th><th>Median</th><th>Review s</th><th>Interruption s</th><th>Notes</th></tr>'+
+    CLIPS.map(c=>{ const s=store[c.clip]||{}; return `<tr><td>${c.clip}</td><td>${c.session||''}</td><td>${s.clarity||''}</td><td>${s.done?s.median:''}</td><td>${s.done?s.reviewSec:''}</td><td>${s.done?s.intSec:''}</td><td>${s.done?escapeHtml(s.notes||''):''}</td></tr>`; }).join('');
+}
+
+function csvCell(v){ v = v===undefined||v===null ? '' : String(v); return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; }
+function exportCsv() {
+  const hdr=['Clip ID','Session ID','Source file','Recorded at','Clarity','Clarity reason',...TIMES.map(t=>'t'+pad(t)),'Car count median','review_time_sec_measured','review_time_sec_simulated','Interruption sec','Notes','Review date','Reviewer'];
+  const lines=[hdr.join(',')];
+  CLIPS.forEach(c=>{ const s=store[c.clip]||{}; const d=!!s.done;
+    lines.push([c.clip,c.session,c.file,c.recorded,s.clarity||'',s.clarityReason||'',...TIMES.map((t,i)=>d?s.counts[i]:''),d?s.median:'',d?s.reviewSec:'',c.sim,d?s.intSec:'',d?(s.notes||''):'',d?s.date:'',d?s.reviewer:''].map(csvCell).join(','));
+  });
+  const blob=new Blob([lines.join('\n')+'\n'],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`clip-log-measured-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
+}
+
+$('clipSel').onchange=e=>loadClip(e.target.value);
+document.querySelectorAll('input[name=clarity]').forEach(r=>r.onchange=setClarity);
+$('clarityReason').oninput=()=>{ if(store[cur]){ store[cur].clarityReason=$('clarityReason').value; save(); } };
+$('startBtn').onclick=()=>startRun(false);
+$('pauseBtn').onclick=pause; $('resumeBtn').onclick=resume; $('restartBtn').onclick=restart; $('finishBtn').onclick=finish;
+$('nextBtn').onclick=()=>{ const i=CLIPS.findIndex(c=>c.clip===cur); const n=CLIPS.slice(i+1).find(c=>!store[c.clip]?.done)||CLIPS.find(c=>!store[c.clip]?.done); if(n) loadClip(n.clip); else alert('All clips reviewed. Export the CSV.'); };
+$('redoBtn').onclick=()=>{ if(confirm(`Discard the saved review for ${cur}? Clarity is kept.`)){ const s=store[cur]; store[cur]={clarity:s.clarity, clarityReason:s.clarityReason}; save(); loadClip(cur); } };
+$('exportBtn').onclick=exportCsv;
+$('resetAllBtn').onclick=()=>{ if(confirm('Erase ALL saved reviews in this browser? Export first if needed.')){ store={}; save(); loadClip(CLIPS[0].clip); } };
+$('lightbox').onclick=()=>$('lightbox').style.display='none';
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('lightbox').style.display='none'; });
+window.addEventListener('beforeunload',e=>{ if(run){ e.preventDefault(); e.returnValue=''; } });
+
+const firstOpen = CLIPS.find(c=>!store[c.clip]?.done) || CLIPS[0];
+loadClip(firstOpen.clip);
+</script>
+</body>
+</html>

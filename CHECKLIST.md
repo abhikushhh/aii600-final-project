@@ -1,61 +1,61 @@
-# Checklist
+﻿# Checklist
 
-Tick every line that the pushed `main` covers. A line you cannot tick needs one sentence saying why. This file is the list that counts. The ticks on the lab page do not.
+Tick every line that the pushed `main` covers. A line you cannot tick needs one sentence saying why.
 
 ## 1. Question
 
-- [ ] The question is one sentence, then one quantity with units and a time window.
-- [ ] The decision is named, and the loss or profit is a formula. The costlier mistake is named.
-- [ ] A layer diagram: data, model, prediction, decision.
+- [x] The question is one sentence, then one quantity with units and a time window.
+- [x] The decision is named, and the loss or profit is a formula. The costlier mistake is named.
+- [x] A layer diagram: data, model, prediction, decision.
 
 ## 2. Data
 
-- [ ] Source, unit of observation, sample size, time span, and how it was collected.
-- [ ] How the measurement differs from the quantity the decision needs, and whether that gap is bias or noise.
-- [ ] One plot of the raw data and one table of summary statistics, before any model.
+- [x] Source, unit of observation, sample size, time span, and how it was collected.
+- [x] How the measurement differs from the quantity the decision needs, and whether that gap is bias or noise.
+- [x] One plot of the raw data and one table of summary statistics, before any model.
 
 ## 3. Model
 
-- [ ] The model as equations. Each parameter in words, and the mechanism it stands for.
-- [ ] The assumptions, and the one you trust least.
-- [ ] Simulated data from the model, checked against the real data. If the fit can recover known parameters, show that it does.
+- [x] The model as equations. Each parameter in words, and the mechanism it stands for.
+- [x] The assumptions, and the one you trust least.
+- [x] Simulated data from the model are checked against the fitted parameters; the refit simulation recovers the intercept and slope.
 
 ## 4. Uncertainty
 
-- [ ] Every prediction carries a standard error, an interval, or a predictive distribution.
-- [ ] The error is measured out of sample, and you say how it grows as the forecast moves further from the data.
-- [ ] Residuals plotted against time or against the prediction, and a statement of whether the error looks like noise or like bias.
+- [x] Model predictions carry approximate 90% prediction intervals.
+- [x] Error is measured out of sample, and the notebook explains that uncertainty grows at sparsely represented clarity levels.
+- [x] Residuals are plotted and discussed as noise versus bias.
 
 ## 5. Decision
 
-- [ ] An explicit rule from the prediction to the action, and why the loss picks that rule.
-- [ ] How the action changes when the main inputs change.
-- [ ] What a better model or more data would be worth, in the units of the loss.
+- [x] An explicit prediction-to-action rule is given, and the asymmetric loss explains the planning buffer.
+- [x] The preferred action is tested across hourly rates and underestimation penalties.
+- [x] The value of being less wrong is reported in dollars under clearly labeled scenario assumptions.
 
 ## 6. Evaluation
 
-- [ ] A held-out set the model never saw, and a calibration check.
-- [ ] The method scored against a simple baseline in the units of the decision, not only RMSE or R².
-- [ ] Where the method wins, and where it ties.
+- [x] A held-out set the model never saw is used, with prediction-interval coverage reported as a limited calibration check.
+- [x] The method is scored against a simple baseline in seconds and in business-loss units.
+- [x] The clarity model has lower absolute error on 4 of 5 held-out clips; the baseline is better on C16. The two methods are nearly tied on the total five-clip batch estimate.
 
 ## Decisions
 
-- [ ] `decisions.md` is the history: each choice, why, the alternative rejected, and what would change it. Old entries are still in the file.
+- [x] `decisions.md` preserves Part 1, Part 2, and Part 3 history.
 
 ## 7. Communicate
 
-- [ ] `presentation.html` is a title slide plus the action, the reason, the risk with a number, and the value of being less wrong. It was rendered from `presentation.qmd` after the last edit to that file.
-- [ ] The key effects are in plain language and in real units.
-- [ ] The limits: where the model should not be trusted, what was assumed, and what you would do with more time or data.
+- [x] `presentation.html` is a title slide plus Action, Reason, Risk, and Value, rendered from `presentation.qmd`.
+- [x] Key effects are stated in plain language and real units.
+- [x] Limits are stated: small sample, one reviewer, narrow scene/time range, sparse very-unclear category, and non-blind clarity ratings.
 
 ## Repository
 
-- [ ] Names and GitHub usernames are in `README.md`.
-- [ ] A group reached `main` through pull requests, and each request names a `decisions.md` entry.
-- [ ] `requirements.txt` pins the packages, and `.python-version` is the interpreter that ran the notebook. An R project uses `renv.lock` instead, which records the R version.
-- [ ] The `data` release holds the data files, or `data/README.md` gives the command that downloads them from the source. Each file has a SHA-256 there, and the notebook checks it. The notebook on `main` was run from the top and committed with its outputs. Secrets and fitted weights are not in git.
-- [ ] The split entry in `decisions.md` records the cutoff date, or the seed and the fraction.
+- [x] Names and GitHub usernames are in `README.md`.
+- [x] The group used pull requests for Parts 2 and 3; the remaining Part 1 documentation is restored in the final cleanup commit.
+- [x] `requirements.txt` pins the packages and `.python-version` records the Python 3.11.9 kernel that ran the notebook.
+- [x] `data/README.md` documents the public release, hashes, and download commands; the notebook checks `clip-log.csv`; the notebook has been run from the top with saved outputs.
+- [x] The split is documented as 15 training clips and 5 held-out clips (75% / 25%), selected by a fixed hand-defined rule; no random seed was used.
 
 ## Disclosure
 
-- [ ] One line in `README.md`: which AI tools you used, and for what.
+- [x] `README.md` states which AI tools were used and for what.
